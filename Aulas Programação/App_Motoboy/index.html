@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App do Motoboy</title>
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#8b0000">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://placehold.co/192x192/8b0000/ffffff?text=App">
+
+    <link rel="manifest" href="data:application/json;charset=UTF-8,%7B%22name%22%3A%22App%20Motoboy%22%2C%22short_name%22%3A%22Motoboy%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f3f4f6%22%2C%22theme_color%22%3A%22%238b0000%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F192x192%2F8b0000%2Fffffff%3Ftext%3DApp%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F512x512%2F8b0000%2Fffffff%3Ftext%3DApp%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            transition: all 0.5s ease-in-out;
+        }
+        .container-app {
+            max-width: 600px;
+            display: none; /* Inicia escondido */
+        }
+        .tab-button {
+            flex-grow: 1;
+            padding: 0.5rem 0.5rem;
+            font-weight: 600;
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            transition-property: background-color, color, border-color;
+            transition-duration: 300ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-button.active {
+            background-color: white;
+            color: #991b1b;
+            border-bottom: 2px solid #991b1b;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-day {
+            padding: 0.5rem;
+            text-align: center;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition-property: background-color, color;
+            transition-duration: 200ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .calendar-day.has-data {
+            background-color: #fef3c7; /* Mostarda claro */
+            font-weight: 700;
+        }
+        .calendar-day.has-data:hover {
+            background-color: #fde68a; /* Mostarda mais escuro no hover */
+        }
+        .calendar-day.current-day {
+            background-color: #991b1b; /* Vermelho escuro */
+            color: white;
+            font-weight: 700;
+        }
+        .calendar-day:not(.has-data) {
+            background-color: #e5e7eb;
+            color: #6b7280;
+        }
+        .calendar-day:not(.has-data):hover {
+            background-color: #d1d5db;
+        }
+        .calendar-day.other-month {
+            color: #9ca3af;
+        }
+        /* Estilo para a sele&ccedil;&atilde;o de datas */
+        .calendar-day.selected-start, .calendar-day.selected-end {
+            background-color: #991b1b; /* Amarelo mais vibrante para sele&ccedil;&atilde;o */
+            color: white;
+            font-weight: 700;
+        }
+        .calendar-day.selected-range {
+            background-color: #fde047; /* Amarelo para o intervalo */
+            color: black;
+            font-weight: 600;
+        }
+        /* Estilos para a capa */
+        #cover-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #991b1b; /* Vermelho escuro */
+            z-index: 50;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+        #cover-page.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .cover-content {
+            text-align: center;
+            color: white;
+            animation: fadeInScale 1s ease-out;
+        }
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        /* Estilos para o modal de alerta */
+        #maintenance-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+        }
+        .profile-pic {
+            width: 96px;
+            height: 96px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        /* Estilo para a tabela de resumo */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .summary-table th, .summary-table td {
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .summary-table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        .summary-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="p-4 flex justify-center items-center min-h-screen">
+
+    <div id="cover-page">
+        <div class="cover-content">
+            <img id="cover-profile-pic" src="https://placehold.co/96x96/8b0000/ffffff?text=App" alt="Foto de Perfil" class="mx-auto mb-4 profile-pic hidden">
+            <h1 id="cover-title" class="text-4xl sm:text-5xl font-extrabold mb-4">App do Motoboy</h1>
+            <p id="cover-subtitle" class="text-lg sm:text-xl mb-8">Seu controle di&aacute;rio de ganhos e manuten&ccedil;&atilde;o.</p>
+            <button id="enter-app-button" class="bg-white text-red-800 font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-100 transition duration-300">
+                Entrar
+            </button>
+        </div>
+    </div>
+
+    <div id="maintenance-modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-red-600 mb-4">Aten&ccedil;&atilde;o!</h3>
+            <div id="maintenance-alerts" class="space-y-2 text-gray-700 text-left">
+                </div>
+            <button id="close-modal-button" class="mt-6 w-full py-2 px-4 bg-red-800 text-white font-semibold rounded-md shadow-lg hover:bg-red-900 transition duration-300">
+                OK, Entendido
+            </button>
+        </div>
+    </div>
+
+    <div class="container-app w-full bg-white rounded-xl shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Controle Di&aacute;rio do Motoboy</h1>
+
+        <div class="flex justify-between mb-6 border-b border-gray-200">
+            <button data-tab="diario" class="tab-button active">Di&aacute;rio</button>
+            <button data-tab="veiculo" class="tab-button">Ve&iacute;culo</button>
+            <button data-tab="historico" class="tab-button">Hist&oacute;rico</button>
+            <button data-tab="perfil" class="tab-button">Perfil</button>
+        </div>
+
+        <div data-tab-content="diario" class="tab-content">
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Dados do Dia</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="km-inicio" class="block text-sm font-medium text-gray-600">KM In&iacute;cio</label>
+                        <input type="number" id="km-inicio" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 12500">
+                    </div>
+                    <div>
+                        <label for="km-final" class="block text-sm font-medium text-gray-600">KM Final</label>
+                        <input type="number" id="km-final" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 12600">
+                    </div>
+                    <div>
+                        <label for="preco-litro" class="block text-sm font-medium text-gray-600">Pre&ccedil;o do Litro (R$)</label>
+                        <input type="number" step="0.01" id="preco-litro" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 5.50">
+                    </div>
+                    <div>
+                        <label for="media-veiculo" class="block text-sm font-medium text-gray-600">M&eacute;dia do Ve&iacute;culo (km/L)</label>
+                        <input type="number" id="media-veiculo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 25">
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Lan&ccedil;amentos de Entregas</h3>
+                    <div id="entries-container" class="space-y-4">
+                        </div>
+                    <button id="btn-add-entry" class="mt-4 w-full py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-300">
+                        + Adicionar Lan&ccedil;amento
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div>
+                        <label for="gorjetas" class="block text-sm font-medium text-gray-600">Gorjetas (R$)</label>
+                        <input type="number" step="0.01" id="gorjetas" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 10.00">
+                    </div>
+                    <div>
+                        <label for="valor-fixo" class="block text-sm font-medium text-gray-600">Valor Fixo / Di&aacute;ria (R$)</label>
+                        <input type="number" step="0.01" id="valor-fixo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 20.00">
+                    </div>
+                    <div>
+                        <label for="alimentacao" class="block text-sm font-medium text-gray-600">Alimenta&ccedil;&atilde;o (R$)</label>
+                        <input type="number" step="0.01" id="alimentacao" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 30.00">
+                    </div>
+                    <div>
+                        <label for="imprevistos" class="block text-sm font-medium text-gray-600">Imprevistos (R$)</label>
+                        <input type="number" step="0.01" id="imprevistos" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800 p-2" placeholder="Ex: 10.00">
+                    </div>
+                </div>
+                
+                <button id="btn-salvar-calcular" class="mt-6 w-full py-3 px-4 bg-red-800 text-white font-semibold rounded-md shadow-lg hover:bg-red-900 transition duration-300">
+                    Salvar e Calcular
+                </button>
+            </div>
+
+            <div id="resultados-container" class="bg-gray-100 rounded-md p-4 hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Resumo do Dia</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <p><strong>Quil&ocirc;metros Rodados:</strong> <span id="km-rodados" class="font-medium text-red-800"></span> km</p>
+                    <p><strong>Total de Entregas:</strong> <span id="total-entregas-display" class="font-medium text-blue-800"></span></p>
+                    <p><strong>Ganho Bruto:</strong> R$ <span id="ganho-bruto" class="font-bold text-blue-800"></span></p>
+                    <p><strong>Lucro L&iacute;quido:</strong> R$ <span id="lucro-liquido" class="font-bold text-blue-800"></span></p>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-700 mt-6 pt-4 border-t border-gray-200">Detalhes das Despesas</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                    <p><strong>Custo do Combust&iacute;vel:</strong> R$ <span id="custo-combustivel" class="font-medium text-red-600"></span></p>
+                    <p><strong>Custo Manuten&ccedil;&atilde;o Di&aacute;rio:</strong> R$ <span id="custo-manutencao-diario" class="font-medium text-red-600"></span></p>
+                    <p><strong>Alimenta&ccedil;&atilde;o:</strong> R$ <span id="custo-alimentacao" class="font-medium text-red-600"></span></p>
+                    <p><strong>Imprevistos:</strong> R$ <span id="custo-imprevistos" class="font-medium text-red-600"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div data-tab-content="veiculo" class="tab-content hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Informa&ccedil;&otilde;es do Ve&iacute;culo</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="tipo-veiculo" class="block text-sm font-medium text-gray-600">Tipo do Ve&iacute;culo</label>
+                    <input type="text" id="tipo-veiculo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: Honda CG 160">
+                </div>
+                <div>
+                    <label for="placa-veiculo" class="block text-sm font-medium text-gray-600">Placa do Ve&iacute;culo</label>
+                    <input type="text" id="placa-veiculo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: ABC-1234">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-600 mb-2">Foto do Ve&iacute;culo</label>
+                <div class="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-4">
+                    <img id="vehicle-image" class="w-full max-h-48 object-cover rounded-md" src="https://placehold.co/400x200/e5e7eb/6b7280?text=Sem+foto+do+veiculo" alt="Foto do Ve&iacute;culo">
+                </div>
+                <input type="file" id="vehicle-photo-input" accept="image/*" class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+            </div>
+
+            <div class="space-y-6">
+                <h3 class="text-lg font-semibold text-gray-700 mt-6 border-t pt-4">Manuten&ccedil;&atilde;o</h3>
+
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold text-gray-600 mb-2">Troca de &Oacute;leo</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="oleo-km-ultima" class="block text-sm font-medium text-gray-600">KM &Uacute;ltima Troca</label>
+                            <input type="number" id="oleo-km-ultima" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="oleo-durabilidade" class="block text-sm font-medium text-gray-600">Expectativa de Durabilidade (KM)</label>
+                            <input type="number" id="oleo-durabilidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="oleo-valor" class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                            <input type="number" step="0.01" id="oleo-valor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div class="col-span-full md:col-span-3">
+                            <label for="oleo-proxima" class="block text-sm font-medium text-gray-600">Pr&oacute;xima Troca (KM)</label>
+                            <span id="oleo-proxima" class="mt-1 block w-full bg-gray-100 rounded-md p-2 text-gray-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold text-gray-600 mb-2">Freios Dianteiro</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="freios-dianteiro-km-ultima" class="block text-sm font-medium text-gray-600">KM &Uacute;ltima Troca</label>
+                            <input type="number" id="freios-dianteiro-km-ultima" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="freios-dianteiro-durabilidade" class="block text-sm font-medium text-gray-600">Expectativa de Durabilidade (KM)</label>
+                            <input type="number" id="freios-dianteiro-durabilidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="freios-dianteiro-valor" class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                            <input type="number" step="0.01" id="freios-dianteiro-valor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div class="col-span-full md:col-span-3">
+                            <label for="freios-dianteiro-proxima" class="block text-sm font-medium text-gray-600">Pr&oacute;xima Troca (KM)</label>
+                            <span id="freios-dianteiro-proxima" class="mt-1 block w-full bg-gray-100 rounded-md p-2 text-gray-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold text-gray-600 mb-2">Freios Traseiro</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="freios-traseiro-km-ultima" class="block text-sm font-medium text-gray-600">KM &Uacute;ltima Troca</label>
+                            <input type="number" id="freios-traseiro-km-ultima" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="freios-traseiro-durabilidade" class="block text-sm font-medium text-gray-600">Expectativa de Durabilidade (KM)</label>
+                            <input type="number" id="freios-traseiro-durabilidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="freios-traseiro-valor" class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                            <input type="number" step="0.01" id="freios-traseiro-valor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div class="col-span-full md:col-span-3">
+                            <label for="freios-traseiro-proxima" class="block text-sm font-medium text-gray-600">Pr&oacute;xima Troca (KM)</label>
+                            <span id="freios-traseiro-proxima" class="mt-1 block w-full bg-gray-100 rounded-md p-2 text-gray-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold text-gray-600 mb-2">Rela&ccedil;&atilde;o</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="relacao-km-ultima" class="block text-sm font-medium text-gray-600">KM &Uacute;ltima Troca</label>
+                            <input type="number" id="relacao-km-ultima" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="relacao-durabilidade" class="block text-sm font-medium text-gray-600">Expectativa de Durabilidade (KM)</label>
+                            <input type="number" id="relacao-durabilidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="relacao-valor" class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                            <input type="number" step="0.01" id="relacao-valor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div class="col-span-full md:col-span-3">
+                            <label for="relacao-proxima" class="block text-sm font-medium text-gray-600">Pr&oacute;xima Troca (KM)</label>
+                            <span id="relacao-proxima" class="mt-1 block w-full bg-gray-100 rounded-md p-2 text-gray-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold text-gray-600 mb-2">Pneus Dianteiro</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="pneus-dianteiro-km-ultima" class="block text-sm font-medium text-gray-600">KM &Uacute;ltima Troca</label>
+                            <input type="number" id="pneus-dianteiro-km-ultima" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="pneus-dianteiro-durabilidade" class="block text-sm font-medium text-gray-600">Expectativa de Durabilidade (KM)</label>
+                            <input type="number" id="pneus-dianteiro-durabilidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="pneus-dianteiro-valor" class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                            <input type="number" step="0.01" id="pneus-dianteiro-valor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div class="col-span-full md:col-span-3">
+                            <label for="pneus-dianteiro-proxima" class="block text-sm font-medium text-gray-600">Pr&oacute;xima Troca (KM)</label>
+                            <span id="pneus-dianteiro-proxima" class="mt-1 block w-full bg-gray-100 rounded-md p-2 text-gray-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pb-4">
+                    <h4 class="font-semibold text-gray-600 mb-2">Pneus Traseiro</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="pneus-traseiro-km-ultima" class="block text-sm font-medium text-gray-600">KM &Uacute;ltima Troca</label>
+                            <input type="number" id="pneus-traseiro-km-ultima" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="pneus-traseiro-durabilidade" class="block text-sm font-medium text-gray-600">Expectativa de Durabilidade (KM)</label>
+                            <input type="number" id="pneus-traseiro-durabilidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="pneus-traseiro-valor" class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                            <input type="number" step="0.01" id="pneus-traseiro-valor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        </div>
+                        <div class="col-span-full md:col-span-3">
+                            <label for="pneus-traseiro-proxima" class="block text-sm font-medium text-gray-600">Pr&oacute;xima Troca (KM)</label>
+                            <span id="pneus-traseiro-proxima" class="mt-1 block w-full bg-gray-100 rounded-md p-2 text-gray-800">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-salvar-veiculo" class="mt-6 w-full py-3 px-4 bg-red-800 text-white font-semibold rounded-md shadow-lg hover:bg-red-900 transition duration-300">
+                Salvar Informa&ccedil;&otilde;es do Ve&iacute;culo
+            </button>
+
+            <div id="resumo-manutencao" class="mt-8 pt-4 border-t border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Resumo da Manuten&ccedil;&atilde;o</h3>
+                <div class="space-y-4">
+                    </div>
+            </div>
+        </div>
+
+        <div data-tab-content="historico" class="tab-content hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Hist&oacute;rico Di&aacute;rio</h2>
+            <div class="calendar-container mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-month" class="p-2 bg-gray-200 rounded-full hover:bg-gray-300">&lt;</button>
+                    <h3 id="current-month" class="text-lg font-semibold text-gray-800"></h3>
+                    <button id="next-month" class="p-2 bg-gray-200 rounded-full hover:bg-gray-300">&gt;</button>
+                </div>
+                <div id="calendar" class="calendar-grid">
+                    </div>
+            </div>
+
+            <div id="periodo-container" class="mt-8 pt-4 border-t border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Relat&oacute;rio por Per&iacute;odo</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="data-inicio-periodo" class="block text-sm font-medium text-gray-600">Data de In&iacute;cio</label>
+                        <input type="date" id="data-inicio-periodo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="data-fim-periodo" class="block text-sm font-medium text-gray-600">Data de Fim</label>
+                        <input type="date" id="data-fim-periodo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                </div>
+                <button id="btn-gerar-periodo" class="mt-6 w-full py-3 px-4 bg-red-800 text-white font-semibold rounded-md shadow-lg hover:bg-red-900 transition duration-300">
+                    Gerar Relat&oacute;rio do Per&iacute;odo
+                </button>
+            </div>
+
+            <div id="relatorio-historico-container" class="bg-gray-100 rounded-md p-4 mt-6 hidden">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Resumo do Per&iacute;odo</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <p><strong>Total KM Rodados:</strong> <span id="periodo-km-rodados" class="font-medium text-red-800"></span> km</p>
+                    <p><strong>Total Ganho Bruto:</strong> R$ <span id="periodo-ganho-bruto" class="font-bold text-blue-800"></span></p>
+                    <p><strong>Total Despesas:</strong> R$ <span id="periodo-total-despesas" class="font-medium text-red-600"></span></p>
+                    <p><strong>Total Lucro L&iacute;quido:</strong> R$ <span id="periodo-lucro-liquido" class="font-bold text-blue-800"></span></p>
+                </div>
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-2">Ganhos por Aplicativo</h4>
+                    <div id="periodo-ganhos-app-container">
+                        </div>
+                </div>
+            </div>
+        </div>
+        
+        <div data-tab-content="perfil" class="tab-content hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Meu Perfil</h2>
+            <div class="mb-6 flex flex-col items-center">
+                <img id="profile-pic" class="profile-pic mb-4" src="https://placehold.co/96x96/e5e7eb/6b7280?text=Usu&aacute;rio" alt="Foto do Perfil">
+                <input type="file" id="profile-photo-input" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+            </div>
+            <div class="grid grid-cols-1 gap-4 mb-6">
+                <div>
+                    <label for="profile-name" class="block text-sm font-medium text-gray-600">Nome</label>
+                    <input type="text" id="profile-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Seu nome">
+                </div>
+                <div>
+                    <label for="profile-email" class="block text-sm font-medium text-gray-600">E-mail</label>
+                    <input type="email" id="profile-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="seu.email@exemplo.com">
+                </div>
+                <div>
+                    <label for="profile-phone" class="block text-sm font-medium text-gray-600">Telefone</label>
+                    <input type="tel" id="profile-phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="(XX) XXXX-XXXX">
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Aplicativos de Entregas</h3>
+                <p class="text-sm text-gray-500 mb-4">Adicione at&eacute; 5 aplicativos para registrar seus ganhos.</p>
+                <div id="delivery-apps-container" class="space-y-4">
+                    </div>
+                <button id="btn-add-app" class="mt-4 w-full py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-300">
+                    + Adicionar Aplicativo
+                </button>
+            </div>
+
+            <button id="btn-salvar-perfil" class="mt-6 w-full py-3 px-4 bg-red-800 text-white font-semibold rounded-md shadow-lg hover:bg-red-900 transition duration-300">
+                Salvar Perfil
+            </button>
+        </div>
+
+        <div id="message-box" class="fixed bottom-4 inset-x-2 p-4 bg-gray-800 text-white text-center rounded-lg shadow-xl hidden transition-opacity duration-300 ease-in-out">
+            <p id="message-text"></p>
+        </div>
+    </div>
+
+    <script charset="UTF-8">
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const coverPage = document.getElementById('cover-page');
+        const mainApp = document.querySelector('.container-app');
+        const maintenanceModal = document.getElementById('maintenance-modal');
+        const maintenanceAlerts = document.getElementById('maintenance-alerts');
+        
+        const dailyRecordsKey = 'motoboy-daily-records';
+        const vehicleDataKey = 'motoboy-vehicle';
+        const profileDataKey = 'motoboy-profile';
+        const dailySettingsKey = 'motoboy-daily-settings';
+
+        // Vari\u00E1veis do calend\u00E1rio
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        // Vari\u00E1veis de sele\u00E7\u00E3o de per\u00EDodo
+        let startDate = null;
+        let endDate = null;
+
+        /**
+         * Exibe uma mensagem tempor\u00E1ria na tela.
+         * @param {string} message - A mensagem a ser exibida.
+         */
+        function showMessage(message) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 3000);
+        }
+
+        /**
+         * Alterna entre as abas do aplicativo.
+         * @param {string} tabName - O nome da aba para ser exibida ('diario', 'veiculo', 'historico', 'perfil').
+         */
+        function showTab(tabName) {
+            // Esconde todos os conte\u00FAdos das abas
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Desativa todos os bot\u00F5es de aba
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Mostra o conte\u00FAdo da aba selecionada
+            const selectedContent = document.querySelector(`[data-tab-content="${tabName}"]`);
+            if (selectedContent) {
+                selectedContent.classList.remove('hidden');
+            }
+
+            // Ativa o bot\u00E3o da aba selecionada
+            const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('active');
+            }
+
+            // Renderiza o calend\u00E1rio se a aba de hist\u00F3rico for selecionada
+            if (tabName === 'historico') {
+                renderCalendar(currentMonth, currentYear);
+            }
+        }
+
+        /**
+         * Formata um objeto Date para uma string 'YYYY-MM-DD'.
+         * @param {Date} date - O objeto de data.
+         * @returns {string} A data formatada.
+         */
+        function formatToDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        /**
+         * Converte uma string 'YYYY-MM-DD' para um objeto Date.
+         * @param {string} dateString - A data no formato de string.
+         * @returns {Date} O objeto Date.
+         */
+        function parseDateString(dateString) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function getDailyRecords() {
+            const savedData = localStorage.getItem(dailyRecordsKey);
+            return savedData ? JSON.parse(savedData) : {};
+        }
+
+        function saveDailyRecord(date, record) {
+            const records = getDailyRecords();
+            records[date] = record;
+            localStorage.setItem(dailyRecordsKey, JSON.stringify(records));
+            renderCalendar(currentMonth, currentYear); // Atualiza o calend\u00E1rio ap\u00F3s salvar
+        }
+
+        function getVehicleData() {
+            const savedData = localStorage.getItem(vehicleDataKey);
+            return savedData ? JSON.parse(savedData) : {};
+        }
+
+        /**
+         * Salva as configura\u00E7\u00F5es di\u00E1rias (pre\u00E7o do litro e m\u00E9dia do ve\u00EDculo).
+         */
+        function saveDailySettings() {
+            const settings = {
+                precoLitro: document.getElementById('preco-litro').value,
+                mediaVeiculo: document.getElementById('media-veiculo').value
+            };
+            localStorage.setItem(dailySettingsKey, JSON.stringify(settings));
+        }
+
+        /**
+         * Carrega as configura\u00E7\u00F5es di\u00E1rias salvas.
+         */
+        function loadDailySettings() {
+            const savedSettings = localStorage.getItem(dailySettingsKey);
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('preco-litro').value = settings.precoLitro || '';
+                document.getElementById('media-veiculo').value = settings.mediaVeiculo || '';
+            }
+        }
+
+        function calculateDailyCosts(kmRodados, vehicleData) {
+            let custoManutencao = 0;
+            if (vehicleData.manutencao) {
+                const maintenanceItems = ['oleo', 'freios-dianteiro', 'freios-traseiro', 'relacao', 'pneus-dianteiro', 'pneus-traseiro'];
+                maintenanceItems.forEach(item => {
+                    const itemData = vehicleData.manutencao[item];
+                    if (itemData && itemData.valor > 0 && itemData.durabilidade > 0) {
+                        custoManutencao += (itemData.valor / itemData.durabilidade) * kmRodados;
+                    }
+                });
+            }
+            return custoManutencao;
+        }
+
+        function calculateAndSaveRecord() {
+            const kmInicio = parseFloat(document.getElementById('km-inicio').value.replace(',', '.')) || 0;
+            const kmFinal = parseFloat(document.getElementById('km-final').value.replace(',', '.')) || 0;
+            const precoLitro = parseFloat(document.getElementById('preco-litro').value.replace(',', '.')) || 0;
+            const mediaVeiculo = parseFloat(document.getElementById('media-veiculo').value.replace(',', '.')) || 0;
+            const gorjetas = parseFloat(document.getElementById('gorjetas').value.replace(',', '.')) || 0;
+            const valorFixo = parseFloat(document.getElementById('valor-fixo').value.replace(',', '.')) || 0;
+            const alimentacao = parseFloat(document.getElementById('alimentacao').value.replace(',', '.')) || 0;
+            const imprevistos = parseFloat(document.getElementById('imprevistos').value.replace(',', '.')) || 0;
+
+            const entries = [];
+            document.querySelectorAll('#entries-container > div').forEach(entryDiv => {
+                const appName = entryDiv.querySelector('select').value;
+                const valor = parseFloat(entryDiv.querySelector('input[data-field="valor-recebido"]').value.replace(',', '.')) || 0;
+                const entregas = parseInt(entryDiv.querySelector('input[data-field="quantidade-entregas"]').value) || 0;
+                if (valor > 0 || entregas > 0) {
+                    entries.push({ app: appName, valor, entregas });
+                }
+            });
+
+            // Objeto para armazenar os dados do dia
+            const record = {
+                kmInicio, kmFinal, precoLitro, mediaVeiculo, gorjetas, valorFixo, alimentacao, imprevistos, entries
+            };
+
+            let kmRodados = 0, litrosConsumidos = 0, custoCombustivel = 0, custoManutencao = 0;
+            let totalValorRecebido = entries.reduce((sum, entry) => sum + entry.valor, 0);
+            
+            // Calcula o ganho bruto antes de qualquer despesa
+            let ganhoBruto = totalValorRecebido + gorjetas + valorFixo;
+            record.ganhoBruto = ganhoBruto;
+
+            if (kmFinal > kmInicio) {
+                kmRodados = kmFinal - kmInicio;
+                record.kmRodados = kmRodados;
+
+                if (mediaVeiculo > 0 && precoLitro > 0) {
+                    litrosConsumidos = kmRodados / mediaVeiculo;
+                    custoCombustivel = litrosConsumidos * precoLitro;
+                    record.custoCombustivel = custoCombustivel;
+                }
+
+                const vehicleData = getVehicleData();
+                custoManutencao = calculateDailyCosts(kmRodados, vehicleData);
+                record.custoManutencao = custoManutencao;
+
+                let lucroLiquido = ganhoBruto - alimentacao - imprevistos - (record.custoCombustivel || 0) - (record.custoManutencao || 0);
+                record.lucroLiquido = lucroLiquido;
+            }
+
+            const currentDate = formatToDateString(new Date());
+            saveDailyRecord(currentDate, record);
+            displayDailyReport(record);
+            checkMaintenanceReminders(kmFinal);
+            showMessage("Dados do dia salvos e calculados!");
+        }
+
+        function displayDailyReport(record) {
+            // Exibe os dados, usando '--' se a informa\u00E7\u00E3o n\u00E3o existir
+            document.getElementById('km-rodados').textContent = record.kmRodados ? record.kmRodados.toFixed(2) : '--';
+            document.getElementById('ganho-bruto').textContent = record.ganhoBruto ? record.ganhoBruto.toFixed(2) : '--';
+            document.getElementById('lucro-liquido').textContent = record.lucroLiquido ? record.lucroLiquido.toFixed(2) : '--';
+            document.getElementById('custo-combustivel').textContent = record.custoCombustivel ? record.custoCombustivel.toFixed(2) : '--';
+            document.getElementById('custo-manutencao-diario').textContent = record.custoManutencao ? record.custoManutencao.toFixed(2) : '--';
+            document.getElementById('custo-alimentacao').textContent = record.alimentacao ? record.alimentacao.toFixed(2) : '--';
+            document.getElementById('imprevistos').textContent = record.imprevistos ? record.imprevistos.toFixed(2) : '--';
+            
+            const totalEntregas = record.entries.reduce((sum, entry) => sum + entry.entregas, 0);
+            document.getElementById('total-entregas-display').textContent = totalEntregas;
+            
+            document.getElementById('resultados-container').classList.remove('hidden');
+        }
+
+        /**
+         * Renderiza dinamicamente os campos de entrada de lan\u00E7amentos di\u00E1rios.
+         * @param {Array} entries - O array de lan\u00E7amentos a ser renderizado.
+         */
+        function renderDailyEntryFields(entries = []) {
+            const entriesContainer = document.getElementById('entries-container');
+            entriesContainer.innerHTML = '';
+            const deliveryApps = getProfileData().deliveryApps || ['Particular'];
+
+            if (entries.length === 0) {
+                // Se n\u00E3o houver entries salvas, adiciona um campo vazio
+                addEntryField();
+            } else {
+                // Se houver, renderiza os campos salvos
+                entries.forEach((entry, index) => {
+                    addEntryField(entry);
+                });
+            }
+        }
+        
+        /**
+         * Adiciona um novo campo de lan\u00E7amento de entrega ao formul\u00E1rio.
+         * @param {object} entryData - Dados de lan\u00E7amento pr\u00E9-preenchidos (opcional).
+         */
+        function addEntryField(entryData = { app: 'Particular', valor: '', entregas: '' }) {
+            const entriesContainer = document.getElementById('entries-container');
+            const deliveryApps = getProfileData().deliveryApps || ['Particular'];
+
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'flex items-end space-x-2';
+            entryDiv.innerHTML = `
+                <div class="flex-grow">
+                    <label class="block text-sm font-medium text-gray-600">Aplicativo</label>
+                    <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        ${deliveryApps.map(app => `<option value="${app}" ${app === entryData.app ? 'selected' : ''}>${app}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600">Valor (R$)</label>
+                    <input type="number" step="0.01" data-field="valor-recebido" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: 150.00" value="${entryData.valor}">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600">Entregas</label>
+                    <input type="number" data-field="quantidade-entregas" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: 15" value="${entryData.entregas}">
+                </div>
+                <button class="btn-remove-entry p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition duration-300">
+                    Remover
+                </button>
+            `;
+            entriesContainer.appendChild(entryDiv);
+            
+            // Adicionar event listener para o novo bot\u00E3o de remover
+            entryDiv.querySelector('.btn-remove-entry').addEventListener('click', (event) => {
+                event.target.closest('div.flex').remove();
+            });
+        }
+
+        function updateMaintenance() {
+            const items = ['oleo', 'freios-dianteiro', 'freios-traseiro', 'relacao', 'pneus-dianteiro', 'pneus-traseiro'];
+            items.forEach(item => {
+                const kmUltima = parseFloat(document.getElementById(`${item}-km-ultima`).value) || 0;
+                const durabilidade = parseFloat(document.getElementById(`${item}-durabilidade`).value) || 0;
+                const proximaTroca = document.getElementById(`${item}-proxima`);
+                if (kmUltima > 0 && durabilidade > 0) {
+                    proximaTroca.textContent = (kmUltima + durabilidade).toFixed(0);
+                } else {
+                    proximaTroca.textContent = '--';
+                }
+            });
+            updateMaintenanceSummary();
+        }
+
+        function updateMaintenanceSummary() {
+            const resumoDiv = document.querySelector('#resumo-manutencao .space-y-4');
+            resumoDiv.innerHTML = '';
+            const kmAtual = parseFloat(document.getElementById('km-final').value) || 0;
+            const vehicleData = getVehicleData();
+            if (vehicleData.manutencao) {
+                const maintenanceItems = [
+                    { id: 'oleo', name: 'Troca de \u00D3leo' }, { id: 'freios-dianteiro', name: 'Freios Dianteiro' },
+                    { id: 'freios-traseiro', name: 'Freios Traseiro' }, { id: 'relacao', name: 'Rela\u00E7\u00E3o' },
+                    { id: 'pneus-dianteiro', name: 'Pneus Dianteiro' }, { id: 'pneus-traseiro', name: 'Pneus Traseiro' }
+                ];
+                maintenanceItems.forEach(item => {
+                    const itemData = vehicleData.manutencao[item.id];
+                    if (itemData && itemData.valor > 0 && itemData.durabilidade > 0) {
+                        const custoKm = itemData.valor / itemData.durabilidade;
+                        const proximaTroca = itemData.kmUltima + itemData.durabilidade;
+                        let status = "OK", statusColor = "text-amber-700";
+                        const kmRestante = proximaTroca - kmAtual;
+                        if (kmAtual > proximaTroca) {
+                            status = "Troca Necess\u00E1ria";
+                            statusColor = "text-red-600";
+                        } else if (kmRestante <= (itemData.durabilidade * 0.2)) {
+                            status = "Aten\u00E7\u00E3o";
+                            statusColor = "text-yellow-600";
+                        }
+                        const resumoItemHtml = `
+                            <div class="p-4 bg-gray-50 rounded-lg shadow-sm">
+                                <h5 class="font-semibold text-gray-800">${item.name}</h5>
+                                <p class="text-sm text-gray-600">Custo por km: <span class="font-medium text-red-600">R$ ${custoKm.toFixed(4)}</span></p>
+                                <p class="text-sm text-gray-600">Pr\u00F3xima troca: <span class="font-medium">${proximaTroca.toFixed(0)} km</span></p>
+                                <p class="text-sm text-gray-600">Status: <span class="font-bold ${statusColor}">${status}</span></p>
+                            </div>
+                        `;
+                        resumoDiv.innerHTML += resumoItemHtml;
+                    }
+                });
+            }
+        }
+
+        /**
+         * Checa por lembretes de manuten\u00E7\u00E3o e exibe o modal se necess\u00E1rio.
+         * @param {number} kmFinal - O KM final registrado para o dia.
+         */
+        function checkMaintenanceReminders(kmFinal) {
+            const vehicleData = getVehicleData();
+            if (!vehicleData || !vehicleData.manutencao) return;
+
+            maintenanceAlerts.innerHTML = '';
+            const alerts = [];
+            const kmAtual = kmFinal || parseFloat(document.getElementById('km-final').value) || 0;
+
+            const maintenanceItems = [
+                { id: 'oleo', name: 'Troca de \u00D3leo' }, { id: 'freios-dianteiro', name: 'Freios Dianteiro' },
+                { id: 'freios-traseiro', name: 'Freios Traseiro' }, { id: 'relacao', name: 'Rela\u00E7\u00E3o' },
+                { id: 'pneus-dianteiro', name: 'Pneus Dianteiro' }, { id: 'pneus-traseiro', name: 'Pneus Traseiro' }
+            ];
+
+            maintenanceItems.forEach(item => {
+                const itemData = vehicleData.manutencao[item.id];
+                if (itemData && itemData.kmUltima > 0 && itemData.durabilidade > 0) {
+                    const proximaTroca = itemData.kmUltima + itemData.durabilidade;
+                    const kmRestante = proximaTroca - kmAtual;
+                    
+                    if (kmRestante <= 0) {
+                        alerts.push(`Sua ${item.name} est\u00E1 atrasada! Pr\u00F3xima troca era em ${proximaTroca.toFixed(0)} km.`);
+                    } else if (kmRestante <= (itemData.durabilidade * 0.2)) {
+                        alerts.push(`Aten\u00E7\u00E3o: A ${item.name} est\u00E1 se aproximando! Faltam menos de ${Math.round(kmRestante)} km.`);
+                    }
+                }
+            });
+
+            if (alerts.length > 0) {
+                alerts.forEach(alertText => {
+                    const p = document.createElement('p');
+                    p.textContent = alertText;
+                    maintenanceAlerts.appendChild(p);
+                });
+                maintenanceModal.style.display = 'flex';
+            }
+        }
+
+        function saveVehicleData() {
+            const vehicleData = {
+                tipo: document.getElementById('tipo-veiculo').value || '',
+                placa: document.getElementById('placa-veiculo').value || '',
+                photo: document.getElementById('vehicle-image').src.startsWith('data:image/') ? document.getElementById('vehicle-image').src : null,
+                manutencao: {
+                    oleo: { kmUltima: parseFloat(document.getElementById('oleo-km-ultima').value) || 0, durabilidade: parseFloat(document.getElementById('oleo-durabilidade').value) || 0, valor: parseFloat(document.getElementById('oleo-valor').value) || 0 },
+                    'freios-dianteiro': { kmUltima: parseFloat(document.getElementById('freios-dianteiro-km-ultima').value) || 0, durabilidade: parseFloat(document.getElementById('freios-dianteiro-durabilidade').value) || 0, valor: parseFloat(document.getElementById('freios-dianteiro-valor').value) || 0 },
+                    'freios-traseiro': { kmUltima: parseFloat(document.getElementById('freios-traseiro-km-ultima').value) || 0, durabilidade: parseFloat(document.getElementById('freios-traseiro-durabilidade').value) || 0, valor: parseFloat(document.getElementById('freios-traseiro-valor').value) || 0 },
+                    relacao: { kmUltima: parseFloat(document.getElementById('relacao-km-ultima').value) || 0, durabilidade: parseFloat(document.getElementById('relacao-durabilidade').value) || 0, valor: parseFloat(document.getElementById('relacao-valor').value) || 0 },
+                    'pneus-dianteiro': { kmUltima: parseFloat(document.getElementById('pneus-dianteiro-km-ultima').value) || 0, durabilidade: parseFloat(document.getElementById('pneus-dianteiro-durabilidade').value) || 0, valor: parseFloat(document.getElementById('pneus-dianteiro-valor').value) || 0 },
+                    'pneus-traseiro': { kmUltima: parseFloat(document.getElementById('pneus-traseiro-km-ultima').value) || 0, durabilidade: parseFloat(document.getElementById('pneus-traseiro-durabilidade').value) || 0, valor: parseFloat(document.getElementById('pneus-traseiro-valor').value) || 0 }
+                }
+            };
+            localStorage.setItem(vehicleDataKey, JSON.stringify(vehicleData));
+            updateMaintenance();
+            showMessage("Informa\u00E7\u00F5es do ve\u00EDculo salvas com sucesso!");
+        }
+
+        function loadVehicleData() {
+            const savedData = localStorage.getItem(vehicleDataKey);
+            if (savedData) {
+                const vehicleData = JSON.parse(savedData);
+                document.getElementById('tipo-veiculo').value = vehicleData.tipo || '';
+                document.getElementById('placa-veiculo').value = vehicleData.placa || '';
+                if (vehicleData.photo) {
+                    document.getElementById('vehicle-image').src = vehicleData.photo;
+                }
+                const items = ['oleo', 'freios-dianteiro', 'freios-traseiro', 'relacao', 'pneus-dianteiro', 'pneus-traseiro'];
+                items.forEach(item => {
+                    const itemData = vehicleData.manutencao[item];
+                    if (itemData) {
+                        document.getElementById(`${item}-km-ultima`).value = itemData.kmUltima || '';
+                        document.getElementById(`${item}-durabilidade`).value = itemData.durabilidade || '';
+                        document.getElementById(`${item}-valor`).value = itemData.valor || '';
+                    }
+                });
+                updateMaintenance();
+            }
+        }
+
+        function getProfileData() {
+            const savedData = localStorage.getItem(profileDataKey);
+            const data = savedData ? JSON.parse(savedData) : {};
+            if (!data.deliveryApps) {
+                data.deliveryApps = ["Particular"];
+            }
+            return data;
+        }
+
+        function saveProfileData() {
+            const deliveryApps = [];
+            document.querySelectorAll('#delivery-apps-container input').forEach(input => {
+                const appName = input.value.trim();
+                if (appName) {
+                    deliveryApps.push(appName);
+                }
+            });
+
+            const profileData = {
+                name: document.getElementById('profile-name').value || '',
+                email: document.getElementById('profile-email').value || '',
+                phone: document.getElementById('profile-phone').value || '',
+                photo: document.getElementById('profile-pic').src.startsWith('data:image/') ? document.getElementById('profile-pic').src : null,
+                deliveryApps: deliveryApps.length > 0 ? deliveryApps : ["Particular"]
+            };
+            localStorage.setItem(profileDataKey, JSON.stringify(profileData));
+            showMessage("Dados do perfil salvos com sucesso!");
+            updateCoverPage();
+            renderDeliveryApps();
+        }
+
+        function loadProfileData() {
+            const savedData = localStorage.getItem(profileDataKey);
+            if (savedData) {
+                const profileData = JSON.parse(savedData);
+                document.getElementById('profile-name').value = profileData.name || '';
+                document.getElementById('profile-email').value = profileData.email || '';
+                document.getElementById('profile-phone').value = profileData.phone || '';
+                if (profileData.photo) {
+                    document.getElementById('profile-pic').src = profileData.photo;
+                }
+            }
+            renderDeliveryApps();
+        }
+        
+        function renderDeliveryApps() {
+            const appsContainer = document.getElementById('delivery-apps-container');
+            appsContainer.innerHTML = '';
+            const apps = getProfileData().deliveryApps;
+            
+            apps.forEach((app, index) => {
+                const appDiv = document.createElement('div');
+                appDiv.className = 'flex items-center space-x-2';
+                appDiv.innerHTML = `
+                    <input type="text" class="flex-grow rounded-md border-gray-300 shadow-sm p-2" value="${app}" placeholder="Nome do App" ${app === 'Particular' ? 'disabled' : ''}>
+                    ${app !== 'Particular' ? `<button class="btn-remove-app p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition duration-300">Remover</button>` : ''}
+                `;
+                appsContainer.appendChild(appDiv);
+            });
+
+            // Adicionar event listeners para os bot\u00F5es de remover
+            document.querySelectorAll('.btn-remove-app').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    event.target.closest('div.flex').remove();
+                });
+            });
+
+            // Gerencia o bot\u00E3o de adicionar app
+            const btnAddApp = document.getElementById('btn-add-app');
+            if (apps.length >= 5) {
+                btnAddApp.disabled = true;
+                btnAddApp.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnAddApp.disabled = false;
+                btnAddApp.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function loadDailyRecord(date) {
+            const records = getDailyRecords();
+            const record = records[date];
+            if (record) {
+                // Preencher o formul\u00E1rio
+                document.getElementById('km-inicio').value = record.kmInicio || '';
+                document.getElementById('km-final').value = record.kmFinal || '';
+                document.getElementById('preco-litro').value = record.precoLitro || '';
+                document.getElementById('media-veiculo').value = record.mediaVeiculo || '';
+                document.getElementById('gorjetas').value = record.gorjetas || '';
+                document.getElementById('valor-fixo').value = record.valorFixo || '';
+                document.getElementById('alimentacao').value = record.alimentacao || '';
+                document.getElementById('imprevistos').value = record.imprevistos || '';
+
+                // Preencher os lan\u00E7amentos de apps
+                renderDailyEntryFields(record.entries);
+
+                // Exibir o relat\u00F3rio
+                displayDailyReport(record);
+                showTab('diario');
+                showMessage(`Relat\u00F3rio do dia ${date} carregado.`);
+            } else {
+                // Limpar o formul\u00E1rio se n\u00E3o houver registro
+                document.getElementById('km-inicio').value = '';
+                document.getElementById('km-final').value = '';
+                // N\u00E3o limpa preco-litro e media-veiculo, pois eles s\u00E3o persistentes
+                document.getElementById('gorjetas').value = '';
+                document.getElementById('valor-fixo').value = '';
+                document.getElementById('alimentacao').value = '';
+                document.getElementById('imprevistos').value = '';
+                renderDailyEntryFields(); // Reseta os campos de entrada
+                document.getElementById('resultados-container').classList.add('hidden');
+            }
+        }
+
+        // Fun\u00E7\u00F5es do Calend\u00E1rio
+        function renderCalendar(month, year) {
+            const monthNames = ["Janeiro", "Fevereiro", "Mar\u00E7o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            const calendarEl = document.getElementById('calendar');
+            const currentMonthEl = document.getElementById('current-month');
+            const records = getDailyRecords();
+            const today = new Date();
+            const todayString = formatToDateString(today);
+
+            currentMonthEl.textContent = `${monthNames[month]} de ${year}`;
+            calendarEl.innerHTML = '';
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Adiciona dias vazios do m\u00EAs anterior
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day other-month';
+                calendarEl.appendChild(dayEl);
+            }
+
+            // Adiciona dias do m\u00EAs atual
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEl = document.createElement('div');
+                dayEl.textContent = day;
+                dayEl.className = 'calendar-day';
+                dayEl.dataset.date = date;
+
+                if (records[date]) {
+                    dayEl.classList.add('has-data');
+                }
+                if (date === todayString) {
+                    dayEl.classList.add('current-day');
+                }
+                
+                // Adiciona a classe de sele\u00E7\u00E3o se a data estiver no intervalo
+                if (startDate && parseDateString(date) >= parseDateString(startDate) && endDate && parseDateString(date) <= parseDateString(endDate)) {
+                    dayEl.classList.add('selected-range');
+                }
+                if (startDate && date === startDate) {
+                    dayEl.classList.add('selected-start');
+                }
+                if (endDate && date === endDate) {
+                    dayEl.classList.add('selected-end');
+                }
+
+                dayEl.addEventListener('click', () => {
+                    handleDateClick(date);
+                });
+
+                calendarEl.appendChild(dayEl);
+            }
+        }
+        
+        /**
+         * Lida com o clique em uma data do calend\u00E1rio para sele\u00E7\u00E3o de per\u00EDodo.
+         * @param {string} date - A data clicada no formato 'YYYY-MM-DD'.
+         */
+        function handleDateClick(date) {
+            const startDateInput = document.getElementById('data-inicio-periodo');
+            const endDateInput = document.getElementById('data-fim-periodo');
+            
+            const selectedDate = parseDateString(date);
+
+            // Reseta a sele\u00E7\u00E3o se j\u00E1 houver um per\u00EDodo completo
+            if (startDate && endDate) {
+                startDate = null;
+                endDate = null;
+            }
+
+            // Inicia uma nova sele\u00E7\u00E3o ou define a data de fim
+            if (!startDate) {
+                startDate = date;
+                startDateInput.value = startDate;
+                endDateInput.value = '';
+                endDate = null;
+                showMessage('Data de in\u00EDcio selecionada.');
+            } else if (!endDate && selectedDate >= parseDateString(startDate)) {
+                endDate = date;
+                endDateInput.value = endDate;
+                showMessage('Per\u00EDodo selecionado!');
+            } else if (!endDate && selectedDate < parseDateString(startDate)) {
+                endDate = startDate;
+                startDate = date;
+                startDateInput.value = startDate;
+                endDateInput.value = endDate;
+                showMessage('Per\u00EDodo selecionado!');
+            }
+
+            renderCalendar(currentMonth, currentYear); // Atualiza a visualiza\u00E7\u00E3o do calend\u00E1rio
+        }
+
+        function generatePeriodReport() {
+            const startDateStr = document.getElementById('data-inicio-periodo').value;
+            const endDateStr = document.getElementById('data-fim-periodo').value;
+
+            if (!startDateStr || !endDateStr) {
+                showMessage("Selecione uma data de in\u00EDcio e fim.");
+                return;
+            }
+
+            const records = getDailyRecords();
+
+            let totalKmRodados = 0, totalGorjetas = 0, totalLucroLiquido = 0;
+            let totalCustoCombustivel = 0, totalCustoManutencao = 0, totalAlimentacao = 0, totalImprevistos = 0;
+            let totalDespesas = 0;
+            let totalGanhoBruto = 0;
+            const appSummary = {}; // Para armazenar os totais por aplicativo
+
+            let currentDate = parseDateString(startDateStr);
+            const finalDate = parseDateString(endDateStr);
+
+            while (currentDate <= finalDate) {
+                const dateStr = formatToDateString(currentDate);
+                const record = records[dateStr];
+                if (record) {
+                    totalKmRodados += record.kmRodados || 0;
+                    totalGorjetas += record.gorjetas || 0;
+                    totalLucroLiquido += record.lucroLiquido || 0;
+                    totalCustoCombustivel += record.custoCombustivel || 0;
+                    totalCustoManutencao += record.custoManutencao || 0;
+                    totalAlimentacao += record.alimentacao || 0;
+                    totalImprevistos += record.imprevistos || 0;
+                    totalGanhoBruto += record.ganhoBruto || 0;
+
+                    // Soma os ganhos por aplicativo
+                    (record.entries || []).forEach(entry => {
+                        const appName = entry.app;
+                        if (!appSummary[appName]) {
+                            appSummary[appName] = { valor: 0, entregas: 0 };
+                        }
+                        appSummary[appName].valor += entry.valor;
+                        appSummary[appName].entregas += entry.entregas;
+                    });
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            totalDespesas = totalCustoCombustivel + totalCustoManutencao + totalAlimentacao + totalImprevistos;
+
+            document.getElementById('periodo-km-rodados').textContent = totalKmRodados.toFixed(2);
+            document.getElementById('periodo-ganho-bruto').textContent = totalGanhoBruto.toFixed(2);
+            document.getElementById('periodo-total-despesas').textContent = totalDespesas.toFixed(2);
+            document.getElementById('periodo-lucro-liquido').textContent = totalLucroLiquido.toFixed(2);
+
+            const appSummaryContainer = document.getElementById('periodo-ganhos-app-container');
+            appSummaryContainer.innerHTML = '';
+            
+            if (Object.keys(appSummary).length > 0) {
+                const table = document.createElement('table');
+                table.className = 'summary-table';
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Aplicativo</th>
+                            <th>Valor Total (R$)</th>
+                            <th>Total Entregas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(appSummary).map(([app, data]) => `
+                            <tr>
+                                <td>${app}</td>
+                                <td class="text-blue-800">R$ ${data.valor.toFixed(2)}</td>
+                                <td class="text-blue-800">${data.entregas}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                appSummaryContainer.appendChild(table);
+            } else {
+                appSummaryContainer.innerHTML = `<p class="text-sm text-gray-500">Nenhum dado de entregas encontrado para este per\u00EDodo.</p>`;
+            }
+
+            document.getElementById('relatorio-historico-container').classList.remove('hidden');
+        }
+
+        function updateCoverPage() {
+            const profileData = getProfileData();
+            const titleEl = document.getElementById('cover-title');
+            const subtitleEl = document.getElementById('cover-subtitle');
+            const photoEl = document.getElementById('cover-profile-pic');
+
+            if (profileData.name) {
+                titleEl.textContent = `Ol\u00E1, ${profileData.name}!`;
+                subtitleEl.textContent = `Pronto para mais um dia de trabalho?`;
+            } else {
+                titleEl.textContent = `App do Motoboy`;
+                subtitleEl.textContent = `Seu controle di\u00E1rio de ganhos e manuten\u00E7\u00E3o.`;
+            }
+            if (profileData.photo) {
+                photoEl.src = profileData.photo;
+                photoEl.classList.remove('hidden');
+            } else {
+                photoEl.classList.add('hidden');
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('btn-salvar-calcular').addEventListener('click', calculateAndSaveRecord);
+        document.getElementById('btn-add-entry').addEventListener('click', () => {
+            // A\u00E7\u00E3o do bot\u00E3o "Adicionar Lan\u00E7amento" corrigida
+            // Agora, ele simplesmente adiciona um novo campo vazio,
+            // sem a necessidade de re-renderizar todos os campos existentes.
+            addEntryField();
+        });
+        document.getElementById('btn-add-app').addEventListener('click', () => {
+            const appsContainer = document.getElementById('delivery-apps-container');
+            if (appsContainer.children.length < 5) {
+                const appDiv = document.createElement('div');
+                appDiv.className = 'flex items-center space-x-2';
+                appDiv.innerHTML = `
+                    <input type="text" class="flex-grow rounded-md border-gray-300 shadow-sm p-2" placeholder="Nome do App">
+                    <button class="btn-remove-app p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition duration-300">Remover</button>
+                `;
+                appsContainer.appendChild(appDiv);
+                appDiv.querySelector('.btn-remove-app').addEventListener('click', (event) => {
+                    event.target.closest('div.flex').remove();
+                });
+            }
+        });
+        document.getElementById('btn-salvar-veiculo').addEventListener('click', saveVehicleData);
+        document.getElementById('btn-salvar-perfil').addEventListener('click', saveProfileData);
+        document.getElementById('btn-gerar-periodo').addEventListener('click', generatePeriodReport);
+        document.getElementById('prev-month').addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+        document.getElementById('next-month').addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+        document.getElementById('enter-app-button').addEventListener('click', () => {
+            coverPage.classList.add('hidden');
+            mainApp.style.display = 'block';
+            setTimeout(() => {
+                checkMaintenanceReminders();
+                showMessage("App carregado. Comece a registrar seus dados do dia!");
+            }, 500); // Aguarda o fim da transi\u00E7\u00E3o da capa
+        });
+        document.getElementById('close-modal-button').addEventListener('click', () => {
+            maintenanceModal.style.display = 'none';
+        });
+
+        // Listeners para persistir os valores do formul\u00E1rio di\u00E1rio
+        document.getElementById('preco-litro').addEventListener('input', saveDailySettings);
+        document.getElementById('media-veiculo').addEventListener('input', saveDailySettings);
+
+        const allMaintenanceInputs = document.querySelectorAll('#content-veiculo input[type="number"]');
+        allMaintenanceInputs.forEach(input => {
+            input.addEventListener('input', updateMaintenance);
+        });
+
+        // Adiciona o listener de cliques nos bot\u00F5es de aba
+        const tabButtons = document.querySelectorAll('.tab-button');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                showTab(tabName);
+            });
+        });
+
+        // Listener para upload de foto do perfil
+        document.getElementById('profile-photo-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('profile-pic').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Listener para upload de foto do ve\u00EDculo
+        document.getElementById('vehicle-photo-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('vehicle-image').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Carregamento inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDailySettings(); // Carrega as configura\u00E7\u00F5es di\u00E1rias antes de carregar o registro do dia
+            loadVehicleData();
+            loadProfileData();
+            updateCoverPage(); // Atualiza a capa com dados do perfil
+            
+            // Carrega os dados do dia atual se existirem
+            const currentDate = formatToDateString(new Date());
+            const currentRecord = getDailyRecords()[currentDate];
+            if (currentRecord) {
+                loadDailyRecord(currentDate);
+            } else {
+                renderDailyEntryFields();
+            }
+            showTab('diario'); // Mostra a aba Di\u00E1rio por padr\u00E3o
+        });
+    </script>
+</body>
+</html>

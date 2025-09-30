@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Título e Ícone do App Atualizados -->
+    <title>Monitor PA</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' style='fill:url(%23g)'/><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%23b91c1c' /><stop offset='100%25' style='stop-color:%23d97706' /></linearGradient></defs><path d='M50 89.9L46.1 86.5C30.1 72.6 20 62.8 20 50C20 38.8 28.8 30 40 30C44.6 30 49.1 32.2 52 35.5C54.9 32.2 59.4 30 64 30C75.2 30 84 38.8 84 50C84 62.8 73.9 72.6 57.9 86.5L54 89.9' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' transform='scale(0.8) translate(8, 8)'/></svg>">
+    
+    <!-- Bibliotecas externas -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Estilos Gerais */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 100%;
+            overflow-x: hidden;
+            padding-bottom: 80px; /* Espaço para o menu de navegação */
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        /* Cabeçalho */
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 24px;
+            color: #2e76c8;
+        }
+        
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        /* Títulos */
+        .main-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+        
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e8e8e8;
+        }
+        
+        /* Botões */
+        .btn {
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .btn-primary {
+            background-color: #2e76c8;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1c5fb0;
+        }
+        
+        .btn-secondary {
+            background-color: #f0f4f8;
+            color: #2e76c8;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e2eaf3;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .floating-btn {
+            position: fixed;
+            bottom: 85px;
+            right: 20px;
+            background-color: #e74c3c;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        
+        /* Navegação Inferior */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: #95a5a6;
+            font-size: 13px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .nav-item.active {
+            color: #2e76c8;
+        }
+        
+        .nav-item i {
+            font-size: 20px;
+        }
+        
+        /* Filtros */
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .filter-btn {
+            padding: 10px 15px;
+            border-radius: 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        
+        .filter-btn.active {
+            background: #2e76c8;
+            color: white;
+            border-color: #2e76c8;
+        }
+        
+        /* Campos de Formulário */
+        .input-field {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #2e76c8;
+            box-shadow: 0 0 0 2px rgba(46, 118, 200, 0.2);
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        /* Itens de Leitura */
+        .reading-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .reading-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .reading-details {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        /* Classificação */
+        .reading-classification {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .classification-optimal {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .classification-normal {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .classification-high {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Relatórios */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .report-id {
+            font-size: 14px;
+            color: #7f8c8d;
+            background: #f8f9fa;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .report-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .report-date {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+        
+        .report-preview {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0a0a0;
+            flex-direction: column;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Dicas de Saúde */
+        .health-tip {
+            padding: 15px;
+            background: linear-gradient(135deg, #2e76c8, #3498db);
+            color: white;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        
+        /* Itens de Medicamento */
+        .medicine-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .medicine-info {
+            flex: 1;
+        }
+        
+        .medicine-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .medicine-details {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* Tabela de Relatório */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .report-table th, .report-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .report-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        /* Estado Vazio */
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state i {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        /* Resumo do Relatório */
+        .report-summary {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .report-summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .report-summary-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Estilo para o interruptor (switch) - CORREÇÃO */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2e76c8;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+        
+        /* Media Queries */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+                padding-bottom: 80px;
+            }
+            .main-title {
+                font-size: 22px;
+            }
+            .report-title {
+                font-size: 16px;
+            }
+            .btn {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            .report-actions {
+                flex-wrap: wrap;
+            }
+            .date-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .report-actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-heartbeat"></i>
+                <h1>Monitor PA</h1>
+            </div>
+        </header>
+        
+        <!-- Dashboard View -->
+        <div id="dashboard-view">
+            <h2 class="main-title">Olá, <span id="user-name">Utilizador</span>!</h2>
+            <p class="subtitle">Continue a cuidar bem de si.</p>
+            
+            <div class="card">
+                <h3>Última Aferição</h3>
+                <div id="last-reading">
+                    <p class="subtitle">Nenhuma aferição registada ainda.</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Dica de Saúde</h3>
+                <p id="health-tip-text">Beba bastante água para manter-se hidratado.</p>
+            </div>
+            
+            <div class="health-tip">
+                <h3><i class="fas fa-lightbulb"></i> Sabia que?</h3>
+                <p>Monitorizar regularmente a sua pressão arterial é fundamental para prevenir complicações cardiovasculares.</p>
+            </div>
+        </div>
+        
+        <!-- History View -->
+        <div id="history-view" class="hidden">
+            <h2 class="main-title">Histórico</h2>
+            <p class="subtitle">As suas medições mais recentes.</p>
+            
+            <div class="filter-options">
+                <button class="filter-btn active" data-filter="all">Todos</button>
+                <button class="filter-btn" data-filter="week">Esta semana</button>
+                <button class="filter-btn" data-filter="month">Este mês</button>
+                <button class="filter-btn" data-filter="3months">Últimos 3 meses</button>
+            </div>
+            
+            <div class="card">
+                <div id="readings-list">
+                    <div class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <h3>Sem medições</h3>
+                        <p>Adicione uma nova medição para ver o seu histórico.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts View -->
+        <div id="charts-view" class="hidden">
+            <h2 class="main-title">Gráficos e Tendências</h2>
+            <p class="subtitle">Visualize a sua evolução.</p>
+            
+            <div class="card">
+                <div class="chart-container">
+                    <canvas id="bp-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reports View -->
+        <div id="reports-view" class="hidden">
+            <h2 class="main-title">Relatórios</h2>
+            <p class="subtitle">Gere um PDF para o seu médico.</p>
+            
+            <div class="card">
+                <h3>Gerar Novo Relatório</h3>
+                <div style="margin-top: 15px;">
+                    <div class="date-inputs">
+                        <div>
+                            <label for="report-start-date">Data de Início</label>
+                            <input type="date" id="report-start-date" class="input-field">
+                        </div>
+                        <div>
+                            <label for="report-end-date">Data de Fim</label>
+                            <input type="date" id="report-end-date" class="input-field">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 15px;" id="generate-report-btn">
+                        <i class="fas fa-file-pdf"></i> Gerar Relatório
+                    </button>
+                </div>
+            </div>
+
+            <div id="reports-list">
+                <div class="empty-state">
+                    <i class="fas fa-file-pdf"></i>
+                    <h3>Nenhum relatório gerado</h3>
+                    <p>Os seus relatórios aparecerão aqui.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings View -->
+        <div id="settings-view" class="hidden">
+            <h2 class="main-title">Configurações</h2>
+            <p class="subtitle">Ajuste as suas preferências.</p>
+            
+            <div class="card">
+                <h3>Os Seus Dados</h3>
+                <div style="margin-top: 15px;">
+                    <label for="user-name-input">O seu nome (para relatórios)</label>
+                    <input type="text" id="user-name-input" class="input-field" placeholder="Insira o seu nome">
+                    
+                    <label for="user-birthdate">Data de Nascimento</label>
+                    <input type="date" id="user-birthdate" class="input-field">
+                    
+                    <label for="user-gender">Sexo</label>
+                    <select id="user-gender" class="input-field">
+                        <option value="">Selecione</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Medicamentos em Uso</h3>
+                <div id="medicines-list">
+                    <p class="subtitle">Nenhum medicamento adicionado.</p>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <label for="medicine-name">Nome do Medicamento</label>
+                    <input type="text" id="medicine-name" class="input-field" placeholder="Ex: Losartana">
+                    
+                    <label for="medicine-dosage">Dosagem</label>
+                    <input type="text" id="medicine-dosage" class="input-field" placeholder="Ex: 50mg">
+                    
+                    <label for="medicine-frequency">Frequência</label>
+                    <select id="medicine-frequency" class="input-field">
+                        <option value="diario">Diário</option>
+                        <option value="eventual">Eventual</option>
+                    </select>
+                    
+                    <button class="btn btn-secondary" style="width: 100%;" id="add-medicine-btn">
+                        <i class="fas fa-plus"></i> Adicionar Medicamento
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Lembretes</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <p>Ativar lembretes de medição</p>
+                    <label class="switch">
+                        <input type="checkbox" id="reminders-enabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div id="reminders-list" style="margin-top: 15px;">
+                    <p class="subtitle">Nenhum lembrete adicionado.</p>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <input type="time" id="reminder-time" class="input-field" style="flex: 1;">
+                    <button class="btn btn-secondary" id="add-reminder-btn">
+                        <i class="fas fa-plus"></i> Adicionar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Reading View -->
+        <div id="add-reading-view" class="hidden">
+            <h2 class="main-title">Nova Leitura</h2>
+            <p class="subtitle">Registe a sua medição de pressão arterial.</p>
+            
+            <div class="card">
+                <form id="reading-form">
+                    <label for="systolic">Pressão Sistólica (mmHg)</label>
+                    <input type="number" id="systolic" class="input-field" placeholder="Ex: 120" required min="50" max="250">
+                    
+                    <label for="diastolic">Pressão Diastólica (mmHg)</label>
+                    <input type="number" id="diastolic" class="input-field" placeholder="Ex: 80" required min="30" max="150">
+                    
+                    <label for="heart-rate">Frequência Cardíaca (BPM)</label>
+                    <input type="number" id="heart-rate" class="input-field" placeholder="Ex: 70" required min="30" max="200">
+                    
+                    <label for="notes">Notas (opcional)</label>
+                    <textarea id="notes" class="input-field" placeholder="Ex: Medição após pequeno-almoço" rows="3"></textarea>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" style="flex: 1;" id="cancel-reading-btn">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            <i class="fas fa-check"></i> Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <button class="floating-btn" id="add-reading-floating-btn">
+        <i class="fas fa-plus"></i>
+    </button>
+    
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-view="dashboard-view">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </button>
+        <button class="nav-item" data-view="history-view">
+            <i class="fas fa-history"></i>
+            <span>Histórico</span>
+        </button>
+        <button class="nav-item" data-view="charts-view">
+            <i class="fas fa-chart-line"></i>
+            <span>Gráficos</span>
+        </button>
+        <button class="nav-item" data-view="reports-view">
+            <i class="fas fa-file-medical"></i>
+            <span>Relatórios</span>
+        </button>
+        <button class="nav-item" data-view="settings-view">
+            <i class="fas fa-cog"></i>
+            <span>Ajustes</span>
+        </button>
+    </nav>
+
+    <!-- Modal para visualização de relatório -->
+    <div class="modal" id="report-modal">
+        <div class="modal-content">
+            <h2 class="main-title" style="margin-bottom: 20px;">Relatório de Pressão Arterial</h2>
+            <div id="report-content">
+                <p>Conteúdo do relatório será exibido aqui...</p>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="close-report-modal">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para Alertas e Confirmações (NOVO) -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-content">
+            <h3 id="alert-modal-title" class="main-title" style="margin-bottom: 15px;"></h3>
+            <p id="alert-modal-message" class="subtitle" style="margin-bottom: 20px;"></p>
+            <div id="alert-modal-buttons" style="display: flex; gap: 10px; justify-content: flex-end;">
+                <!-- Botões serão injetados aqui via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- INICIALIZAÇÃO E DADOS GLOBAIS ---
+        let allReadings = [];
+        let userSettings = {
+            name: 'Utilizador',
+            birthdate: '',
+            gender: '',
+            medicines: [],
+            remindersEnabled: false,
+            reminderTimes: []
+        };
+        let reports = [];
+        
+        // --- ELEMENTOS DOM ---
+        const views = {
+            dashboard: document.getElementById('dashboard-view'),
+            history: document.getElementById('history-view'),
+            charts: document.getElementById('charts-view'),
+            reports: document.getElementById('reports-view'),
+            settings: document.getElementById('settings-view'),
+            addReading: document.getElementById('add-reading-view')
+        };
+        const navItems = document.querySelectorAll('.nav-item');
+        const addReadingBtn = document.getElementById('add-reading-floating-btn');
+        const cancelReadingBtn = document.getElementById('cancel-reading-btn');
+        
+        // --- PONTO DE ENTRADA DA APLICAÇÃO ---
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            setupEventListeners();
+            renderDashboard();
+            updateActiveNav('dashboard-view');
+        });
+
+        // --- GESTÃO DE DADOS (localStorage) ---
+        function loadData() {
+            const savedReadings = localStorage.getItem('bpReadings_v2');
+            const savedSettings = localStorage.getItem('bpSettings_v2');
+            const savedReports = localStorage.getItem('bpReports_v2');
+            
+            if (savedReadings) allReadings = JSON.parse(savedReadings);
+            if (savedSettings) userSettings = JSON.parse(savedSettings);
+            if (savedReports) reports = JSON.parse(savedReports);
+
+            // Atualiza a UI com os dados carregados
+            document.getElementById('user-name').textContent = userSettings.name || 'Utilizador';
+            document.getElementById('user-name-input').value = userSettings.name || '';
+            if (userSettings.birthdate) document.getElementById('user-birthdate').value = userSettings.birthdate;
+            if (userSettings.gender) document.getElementById('user-gender').value = userSettings.gender;
+        }
+
+        function saveData() {
+            localStorage.setItem('bpReadings_v2', JSON.stringify(allReadings));
+            localStorage.setItem('bpSettings_v2', JSON.stringify(userSettings));
+            localStorage.setItem('bpReports_v2', JSON.stringify(reports));
+        }
+
+        // --- LÓGICA DE NAVEGAÇÃO E UI ---
+        function switchView(viewId) {
+            Object.values(views).forEach(view => view.classList.add('hidden'));
+            if (views[viewId]) views[viewId].classList.remove('hidden');
+            
+            // Renderiza o conteúdo da view ativa
+            switch (viewId) {
+                case 'dashboard': renderDashboard(); break;
+                case 'history': renderHistory(); break;
+                case 'charts': renderCharts(); break;
+                case 'reports': renderReportsList(); break;
+                case 'settings': renderSettings(); break;
+            }
+        }
+
+        function updateActiveNav(activeView) {
+            navItems.forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-view') === activeView);
+            });
+            addReadingBtn.classList.toggle('hidden', activeView === 'add-reading-view');
+        }
+
+        // --- MODAL DE ALERTA (SUBSTITUI alert() E confirm()) ---
+        function showModal(title, message, buttons) {
+            document.getElementById('alert-modal-title').textContent = title;
+            document.getElementById('alert-modal-message').textContent = message;
+            const buttonsContainer = document.getElementById('alert-modal-buttons');
+            buttonsContainer.innerHTML = '';
+
+            buttons.forEach(btnInfo => {
+                const buttonEl = document.createElement('button');
+                buttonEl.className = btnInfo.className;
+                buttonEl.textContent = btnInfo.text;
+                buttonEl.onclick = () => {
+                    document.getElementById('alert-modal').classList.remove('active');
+                    if (btnInfo.onClick) btnInfo.onClick();
+                };
+                buttonsContainer.appendChild(buttonEl);
+            });
+
+            document.getElementById('alert-modal').classList.add('active');
+        }
+
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            // Navegação
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const viewId = this.getAttribute('data-view').replace('-view', '');
+                    switchView(viewId);
+                    updateActiveNav(this.getAttribute('data-view'));
+                });
+            });
+            
+            // Botões de ação
+            addReadingBtn.addEventListener('click', () => {
+                switchView('addReading');
+                updateActiveNav('add-reading-view');
+            });
+
+            cancelReadingBtn.addEventListener('click', () => {
+                switchView('dashboard');
+                updateActiveNav('dashboard-view');
+            });
+            
+            // Formulários
+            document.getElementById('reading-form').addEventListener('submit', e => {
+                e.preventDefault();
+                addNewReading();
+            });
+
+            // Configurações
+            document.getElementById('user-name-input').addEventListener('input', function() {
+                userSettings.name = this.value;
+                document.getElementById('user-name').textContent = this.value || 'Utilizador';
+                saveData();
+            });
+            document.getElementById('user-birthdate').addEventListener('change', function() {
+                userSettings.birthdate = this.value;
+                saveData();
+            });
+            document.getElementById('user-gender').addEventListener('change', function() {
+                userSettings.gender = this.value;
+                saveData();
+            });
+
+            // Relatórios
+            document.getElementById('generate-report-btn').addEventListener('click', () => {
+                const startDate = document.getElementById('report-start-date').value;
+                const endDate = document.getElementById('report-end-date').value;
+                if (!startDate || !endDate) {
+                    showModal('Atenção', 'Por favor, selecione as datas de início e fim.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                    return;
+                }
+                generateReport(startDate, endDate);
+            });
+
+            // Medicamentos e Lembretes
+            document.getElementById('add-medicine-btn').addEventListener('click', addMedicine);
+            document.getElementById('add-reminder-btn').addEventListener('click', addReminder);
+            document.getElementById('reminders-enabled').addEventListener('change', function() {
+                userSettings.remindersEnabled = this.checked;
+                saveData();
+            });
+            
+            // Fechar Modais
+            document.getElementById('close-report-modal').addEventListener('click', () => {
+                document.getElementById('report-modal').classList.remove('active');
+            });
+        }
+
+        // --- FUNCIONALIDADES PRINCIPAIS ---
+
+        function addNewReading() {
+            const systolic = parseInt(document.getElementById('systolic').value);
+            const diastolic = parseInt(document.getElementById('diastolic').value);
+            const heartRate = parseInt(document.getElementById('heart-rate').value);
+            
+            // Validação
+            if (isNaN(systolic) || isNaN(diastolic) || isNaN(heartRate)) {
+                showModal('Erro', 'Por favor, preencha todos os campos numéricos.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                return;
+            }
+            if (systolic < 50 || systolic > 250 || diastolic < 30 || diastolic > 150 || heartRate < 30 || heartRate > 200) {
+                showModal('Valores Inválidos', 'Por favor, insira valores realistas para as medições.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                return;
+            }
+
+            allReadings.push({
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                systolic,
+                diastolic,
+                heartRate,
+                notes: document.getElementById('notes').value
+            });
+            saveData();
+            
+            document.getElementById('reading-form').reset();
+            switchView('dashboard');
+            updateActiveNav('dashboard-view');
+            showModal('Sucesso', 'Leitura registada com sucesso!', [{ text: 'OK', className: 'btn btn-primary' }]);
+        }
+
+        function addMedicine() {
+            const name = document.getElementById('medicine-name').value.trim();
+            const dosage = document.getElementById('medicine-dosage').value.trim();
+            if (!name || !dosage) {
+                showModal('Atenção', 'Por favor, preencha o nome e a dosagem do medicamento.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                return;
+            }
+            userSettings.medicines.push({ name, dosage, frequency: document.getElementById('medicine-frequency').value });
+            saveData();
+            document.getElementById('medicine-name').value = '';
+            document.getElementById('medicine-dosage').value = '';
+            renderSettings();
+        }
+
+        function removeMedicine(index) {
+            showModal('Confirmar Exclusão', 'Tem certeza que deseja remover este medicamento?', [
+                { text: 'Cancelar', className: 'btn btn-secondary' },
+                { text: 'Remover', className: 'btn btn-danger', onClick: () => {
+                    userSettings.medicines.splice(index, 1);
+                    saveData();
+                    renderSettings();
+                }}
+            ]);
+        }
+
+        function addReminder() {
+            const time = document.getElementById('reminder-time').value;
+            if (!time) {
+                showModal('Atenção', 'Por favor, selecione um horário.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                return;
+            }
+            if (userSettings.reminderTimes.includes(time)) {
+                showModal('Atenção', 'Este horário já foi adicionado.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                return;
+            }
+            userSettings.reminderTimes.push(time);
+            userSettings.reminderTimes.sort();
+            saveData();
+            document.getElementById('reminder-time').value = '';
+            renderSettings();
+        }
+
+        function removeReminder(index) {
+            showModal('Confirmar Exclusão', 'Tem certeza que deseja remover este lembrete?', [
+                { text: 'Cancelar', className: 'btn btn-secondary' },
+                { text: 'Remover', className: 'btn btn-danger', onClick: () => {
+                    userSettings.reminderTimes.splice(index, 1);
+                    saveData();
+                    renderSettings();
+                }}
+            ]);
+        }
+
+        function generateReport(startDate, endDate) {
+            const filteredReadings = allReadings.filter(r => {
+                const readingDate = new Date(r.timestamp);
+                return readingDate >= new Date(startDate) && readingDate <= new Date(endDate + 'T23:59:59');
+            });
+
+            if (filteredReadings.length === 0) {
+                showModal('Sem Dados', 'Não há leituras no período selecionado para gerar um relatório.', [{ text: 'OK', className: 'btn btn-primary' }]);
+                return;
+            }
+
+            const report = {
+                id: generateId(),
+                title: `Relatório de ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
+                generatedAt: new Date().toISOString(),
+                startDate,
+                endDate,
+                readings: filteredReadings,
+                readingsCount: filteredReadings.length
+            };
+            reports.unshift(report);
+            saveData();
+            renderReportsList();
+            showModal('Sucesso', 'Relatório gerado com sucesso!', [{ text: 'OK', className: 'btn btn-primary' }]);
+        }
+
+        function deleteReport(index) {
+            showModal('Confirmar Exclusão', 'Tem certeza que deseja excluir este relatório?', [
+                { text: 'Cancelar', className: 'btn btn-secondary' },
+                { text: 'Excluir', className: 'btn btn-danger', onClick: () => {
+                    reports.splice(index, 1);
+                    saveData();
+                    renderReportsList();
+                }}
+            ]);
+        }
+        
+        function downloadReport(index) {
+            const report = reports[index];
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.text("Relatório de Pressão Arterial", 105, 20, { align: "center" });
+            doc.setFontSize(12);
+            doc.text(`Paciente: ${userSettings.name || 'Não informado'}`, 14, 40);
+            doc.text(`Período: ${new Date(report.startDate).toLocaleDateString('pt-BR')} a ${new Date(report.endDate).toLocaleDateString('pt-BR')}`, 14, 48);
+
+            const tableColumn = ["Data", "Hora", "SIS/DIA", "BPM", "Classificação"];
+            const tableRows = report.readings.map(r => [
+                new Date(r.timestamp).toLocaleDateString('pt-BR'),
+                new Date(r.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                `${r.systolic}/${r.diastolic}`,
+                r.heartRate,
+                classifyBloodPressure(r.systolic, r.diastolic)
+            ]);
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 60,
+                theme: 'grid',
+                headStyles: { fillColor: [46, 118, 200] }
+            });
+
+            doc.save(`relatorio_pa_${userSettings.name || 'utilizador'}.pdf`);
+        }
+
+        // --- FUNÇÕES DE RENDERIZAÇÃO ---
+        function renderDashboard() {
+            const lastReadingEl = document.getElementById('last-reading');
+            if (allReadings.length > 0) {
+                const lastReading = allReadings[allReadings.length - 1];
+                const classification = classifyBloodPressure(lastReading.systolic, lastReading.diastolic);
+                lastReadingEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0;">
+                        <div>
+                            <div class="reading-value">${lastReading.systolic}/${lastReading.diastolic} mmHg</div>
+                            <div class="reading-details">BPM: ${lastReading.heartRate}</div>
+                        </div>
+                        <span class="reading-classification ${getClassificationClass(classification)}">${classification}</span>
+                    </div>
+                    <div class="reading-details">
+                        ${new Date(lastReading.timestamp).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'})}
+                    </div>`;
+            } else {
+                lastReadingEl.innerHTML = '<p class="subtitle">Nenhuma aferição registada ainda.</p>';
+            }
+        }
+
+        function renderHistory() {
+            const listEl = document.getElementById('readings-list');
+            if (allReadings.length === 0) {
+                listEl.innerHTML = `<div class="empty-state"><i class="fas fa-history"></i><h3>Sem medições</h3><p>Adicione uma nova medição para ver o seu histórico.</p></div>`;
+                return;
+            }
+            listEl.innerHTML = '';
+            [...allReadings].reverse().forEach(reading => {
+                const classification = classifyBloodPressure(reading.systolic, reading.diastolic);
+                const itemEl = document.createElement('div');
+                itemEl.className = 'reading-item';
+                itemEl.innerHTML = `
+                    <div>
+                        <div class="reading-value">${reading.systolic}/${reading.diastolic} mmHg</div>
+                        <div class="reading-details">
+                            BPM: ${reading.heartRate} | ${new Date(reading.timestamp).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'})}
+                        </div>
+                    </div>
+                    <span class="reading-classification ${getClassificationClass(classification)}">${classification}</span>`;
+                listEl.appendChild(itemEl);
+            });
+        }
+
+        function renderCharts() {
+            const container = document.querySelector('#charts-view .card');
+            container.innerHTML = '<div class="chart-container"><canvas id="bp-chart"></canvas></div>'; // Reset canvas
+            const ctx = document.getElementById('bp-chart').getContext('2d');
+
+            if (allReadings.length < 2) {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-chart-line"></i><h3>Dados insuficientes</h3><p>São necessárias pelo menos 2 medições para exibir um gráfico.</p></div>`;
+                return;
+            }
+
+            const sorted = [...allReadings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            if (window.bpChart) window.bpChart.destroy();
+            window.bpChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sorted.map(r => new Date(r.timestamp).toLocaleDateString('pt-BR')),
+                    datasets: [
+                        { label: 'Sistólica', data: sorted.map(r => r.systolic), borderColor: '#e74c3c', tension: 0.1 },
+                        { label: 'Diastólica', data: sorted.map(r => r.diastolic), borderColor: '#2e76c8', tension: 0.1 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderReportsList() {
+            const listEl = document.getElementById('reports-list');
+            if (reports.length === 0) {
+                listEl.innerHTML = `<div class="empty-state"><i class="fas fa-file-pdf"></i><h3>Nenhum relatório gerado</h3><p>Os seus relatórios aparecerão aqui.</p></div>`;
+                return;
+            }
+            listEl.innerHTML = '';
+            reports.forEach((report, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'card';
+                itemEl.innerHTML = `
+                    <div class="report-header">
+                        <h3 class="report-title">${report.title}</h3>
+                        <button class="btn btn-danger" onclick="deleteReport(${index})"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <p class="report-date">Gerado em: ${new Date(report.generatedAt).toLocaleString('pt-BR')}</p>
+                    <div class="report-actions">
+                        <button class="btn btn-secondary" onclick="downloadReport(${index})"><i class="fas fa-download"></i> Baixar PDF</button>
+                    </div>`;
+                listEl.appendChild(itemEl);
+            });
+        }
+
+        function renderSettings() {
+            const medListEl = document.getElementById('medicines-list');
+            const remListEl = document.getElementById('reminders-list');
+            
+            // Medicamentos
+            if (userSettings.medicines.length > 0) {
+                medListEl.innerHTML = '';
+                userSettings.medicines.forEach((med, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'medicine-item';
+                    itemEl.innerHTML = `
+                        <div class="medicine-info">
+                            <div class="medicine-name">${med.name} - ${med.dosage}</div>
+                            <div class="medicine-details">${med.frequency === 'diario' ? 'Uso diário' : 'Uso eventual'}</div>
+                        </div>
+                        <button class="btn btn-danger" onclick="removeMedicine(${index})"><i class="fas fa-trash"></i></button>`;
+                    medListEl.appendChild(itemEl);
+                });
+            } else {
+                medListEl.innerHTML = '<p class="subtitle">Nenhum medicamento adicionado.</p>';
+            }
+
+            // Lembretes
+            if (userSettings.reminderTimes.length > 0) {
+                remListEl.innerHTML = '';
+                userSettings.reminderTimes.forEach((time, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'medicine-item';
+                    itemEl.innerHTML = `
+                        <div class="medicine-details">${time}</div>
+                        <button class="btn btn-danger" onclick="removeReminder(${index})"><i class="fas fa-trash"></i></button>`;
+                    remListEl.appendChild(itemEl);
+                });
+            } else {
+                remListEl.innerHTML = '<p class="subtitle">Nenhum lembrete adicionado.</p>';
+            }
+            document.getElementById('reminders-enabled').checked = userSettings.remindersEnabled;
+        }
+
+        // --- FUNÇÕES UTILITÁRIAS ---
+        function classifyBloodPressure(systolic, diastolic) {
+            if (systolic >= 180 || diastolic >= 110) return 'Hipertensão Estágio 3';
+            if (systolic >= 160 || diastolic >= 100) return 'Hipertensão Estágio 2';
+            if (systolic >= 140 || diastolic >= 90) return 'Hipertensão Estágio 1';
+            if (systolic >= 130 || diastolic >= 85) return 'Pré-Hipertensão';
+            if (systolic >= 120 || diastolic >= 80) return 'Normal';
+            return 'Ótima';
+        }
+
+        function getClassificationClass(classification) {
+            if (classification.includes('Hipertensão') || classification.includes('Pré-Hipertensão')) return 'classification-high';
+            if (classification === 'Normal') return 'classification-normal';
+            return 'classification-optimal';
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+    </script>
+</body>
+</html>
